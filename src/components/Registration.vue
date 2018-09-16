@@ -11,12 +11,50 @@
                 />
             </div>
             <div>
-                Login  <BootstrapInput v-model="formData.login" />
-                Password  <BootstrapInput v-model="formData.password" />
-                E-mail <BootstrapInput />
+                Login
+                <BootstrapInput
+                        v-model="formData.login"
+                        v-validate="'required'"
+                        name="form_login"
+                        maxlength="16"/>
+                <span v-show="errors.has('form_login')" style="color: red;">
+                    The field is not valid <br>
+                </span>
+
+                Name
+                <BootstrapInput
+                        v-model="formData.name"
+                        v-validate="'required'"
+                        name="form_name"
+                        maxlength="16" />
+                <span v-show="errors.has('form_name')" style="color: red;">
+                    The field is not valid <br>
+                </span>
+
+                Password
+                <BootstrapInput
+                        v-model="formData.password"
+                        name="form_password"
+                        type="password"
+                        v-validate="'min:6|required'" />
+
+                <span v-show="errors.has('form_password')" style="color: red;">
+                    Password less than 6 characters<br>
+                </span>
+
+                E-mail
+                <BootstrapInput
+                        v-model="formData.email"
+                        name="form_email"
+                        v-validate="'email|required'"
+                        type="email"
+                />
+                <span v-show="errors.has('form_email')" style="color: red;">
+                    Email is not valid<br>
+                </span>
             </div>
             <div>
-                <BootstrapButton variant="primary">
+                <BootstrapButton variant="primary" @click="addUser">
                     Registration, {{formData.login}}
                 </BootstrapButton>
             </div>
@@ -40,13 +78,13 @@
     const StyledRegistrationBlock = styled('div')`
       display: grid;
       grid-template-columns: 1fr;
-      grid-template-rows: 1fr 2fr 1fr;
+      grid-template-rows: 0fr 2fr 0fr;
       width: 300px;
       border: 2px solid #3498db;
       //#66bfa1;
       border-radius: 8px;
       grid-row-gap: 25px;
-      padding: 15px;
+      padding: 10px;
 
 `;
 
@@ -67,28 +105,66 @@
 
                 formData: {
                     login: '',
-                    password: ''
+                    name: '',
+                    password: '',
+                    email: ''
                 }
             };
         },
-
-        watch: {
-            'formData.login' (newVal) {
-                console.log(" Value from our watcher ->>>>", newVal)
-            }
-        },
-
         methods: {
-            registrationRequest () {
+            validateForm (toasterType = 'Please, enter this fields', toasterMessage = 'Error') {
+                return this.$validator.validateAll()
+                        .then(result => {
+                            if (!result) {
+                                this.$toast.error(toasterType, toasterMessage,);
+                                return false;
+                            }
 
+                            return true;
+                        });
+            },
+            addUser () {
+                this.validateForm()
+                    .then((isFormValid) => {
+                        if (!isFormValid) {
+                            return;
+                        }
+
+                        const userData = {
+                            form_data: {
+                                name: this.formData.name,
+                                email: this.formData.email,
+                                user: this.formData.login,
+                                password: this.formData.password
+                            }
+                        };
+
+                        this.axios({
+                            method: 'get',
+                            url: 'http://todo.loc/api/server.php',
+                            params: Object.assign(userData, { add_user: true })
+                        })
+                            .then((serverResponse) => {
+                                const response = serverResponse.data;
+
+                                console.log('response = ', response)
+
+                                if (response.errors.length !== 0 && response.errors.includes('email')) {
+                                    this.$toaster('error', 'User with this email is already exists', 'Error');
+                                    return;
+                                }
+
+                                this.$router.push('/auth');
+                            });
+                    });
             }
         }
 
     }
 </script>
 
-<style scoped>
-    .content {
+<!--<style scoped>-->
+    <!--.content {-->
 
-    }
-</style>
+    <!--}-->
+<!--</style>-->
